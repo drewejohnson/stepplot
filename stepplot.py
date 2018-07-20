@@ -18,7 +18,8 @@ from numpy import hstack, array, ndarray, divide, subtract, add
 from matplotlib.pyplot import gca
 
 
-def stepplot(x, y, yerr=None, ax=None, **kwargs):
+def stepplot(x, y, yerr=None, ax=None, loglog=False, logx=False, logy=False,
+             **kwargs):
     """
     Step-plotter for values that are constant within a bin
 
@@ -34,6 +35,12 @@ def stepplot(x, y, yerr=None, ax=None, **kwargs):
     ax: None or axes argument
         Plot on which to draw the points. If not given, construct a new plot or
         obtain the current axes argument with :func:`matplotlib.pyplot.gca`.
+    loglog: bool
+        Apply a log scale to both axis if this evaluates to true
+    logx: bool
+        Apply a logscale to x-axis if this evaluates to true
+    logy: bool
+        Apply a logscale to y-axis if this evaluates to true
     kwargs:
         Additional arguments to pass to :func:`matplotlib.pyplot.plot` and to
         func:`matplotlib.pyplot.errobar` if ``yerr`` is not ``None``.
@@ -54,6 +61,11 @@ def stepplot(x, y, yerr=None, ax=None, **kwargs):
     drawstyle = 'steps-post'
     ax = ax or gca()
     lines2D = ax.plot(sx, stackedy, drawstyle=drawstyle, **kwargs)[0]
+
+    if loglog or logy:
+        ax.set_yscale('log')
+    if loglog or logx:
+        ax.set_xscale('log')
 
     if yerr is None:
         return ax
