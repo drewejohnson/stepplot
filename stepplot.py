@@ -9,7 +9,8 @@ Y-data is assumed to be constant within some bin
 """
 
 # TODO
-# *. Put a proper error-bar marker for the legend. Currently same marker as normal plot
+# *. Put a proper error-bar marker for the legend.
+#    Currently same marker as normal plot
 # *. Support for passing 2D matrices as y and yerr
 # *. Testing
 # *. Setup script, maybe?
@@ -18,8 +19,8 @@ from numpy import hstack, array, ndarray, divide, subtract, add
 from matplotlib.pyplot import gca
 
 
-def stepplot(x, y, yerr=None, ax=None, loglog=False, logx=False, logy=False,
-             **kwargs):
+def stepplot(x, y, yerr=None, ax=None, stackon='right', loglog=False,
+             logx=False, logy=False, **kwargs):
     """
     Step-plotter for values that are constant within a bin
 
@@ -35,6 +36,8 @@ def stepplot(x, y, yerr=None, ax=None, loglog=False, logx=False, logy=False,
     ax: None or axes argument
         Plot on which to draw the points. If not given, construct a new plot or
         obtain the current axes argument with :func:`matplotlib.pyplot.gca`.
+    stackon: {'right', 'left'}
+        Append the last or first column to ydata and yerr.
     loglog: bool
         Apply a log scale to both axis if this evaluates to true
     logx: bool
@@ -56,9 +59,17 @@ def stepplot(x, y, yerr=None, ax=None, loglog=False, logx=False, logy=False,
         y = array(y)
     sortedIndices = x.argsort()
     sx = x[sortedIndices]
-    sy = y[sortedIndices[:-1, ...]]
-    stackedy = hstack((sy, sy[-1, ...]))
-    drawstyle = 'steps-post'
+    if stackon == 'right':
+        sy = y[sortedIndices[:-1, ...]]
+        stackedy = hstack((sy, sy[-1, ...]))
+        drawstyle = 'steps-post'
+    elif stackon == 'left':
+        sy = y[sortedIndices[1:, ...]]
+        stackedy = hstack((sy[0, ...], sy))
+        drawstyle = 'steps-pre'
+    else:
+        raise KeyError("stackon must be either left or right, not {}"
+                       .format(stackon))
     ax = ax or gca()
     lines2D = ax.plot(sx, stackedy, drawstyle=drawstyle, **kwargs)[0]
 
@@ -72,7 +83,12 @@ def stepplot(x, y, yerr=None, ax=None, loglog=False, logx=False, logy=False,
     if not isinstance(yerr, ndarray):
         yerr = array(yerr)
 
-    syerr = yerr[sortedIndices[:-1, ...]]
+    if stackon == 'right':
+        syerr = yerr[sortedIndices[:-1, ...]]
+        stackedyerr = hstack((syerr, syerr[-1, ...]))
+    else:
+        syerr = yerr[sortedIndices[1:, ...]]
+        stackedyerr = hstack((syerr[0, ...], syerr))
 
     if 'label' in kwargs:
         kwargs.pop('label')
@@ -83,7 +99,7 @@ def stepplot(x, y, yerr=None, ax=None, loglog=False, logx=False, logy=False,
 
     errLoc = divide(subtract(sx[1:], sx[:-1]), 2)
     errLoc = add(sx[:-1], errLoc)
-    ax.errorbar(errLoc, sy, yerr=syerr, color=color, fmt='none',
+    ax.errorbar(errLoc, sy, yerr=stackedyerr, color=color, fmt='none',
                 **kwargs)
 
     return ax
